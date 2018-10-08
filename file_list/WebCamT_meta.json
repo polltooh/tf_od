@@ -1,0 +1,12 @@
+{
+    "meta": {
+        "image_width": 352, 
+        "image_height": 240, 
+        "classes": [
+            "vehicle"
+        ], 
+        "num_classes": 10, 
+        "max_num_box": 56, 
+        "dataset_name": "WebCamT"
+    }
+}

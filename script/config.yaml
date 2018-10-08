@@ -1,0 +1,42 @@
+network:
+    base_filter_num: 32
+    kernel_size: 3
+    strides: 2
+    layer_repeat_num: 4
+
+dataset:
+    num_classes: 11 # first one is negative
+    input_shape_h: 240
+    input_shape_w: 352
+    neg_label_value: 0
+    ignore_label_value: -2
+    train_file_name: "../data/164.tf"
+    val_file_name: "../data/164.tf"
+    test_file_name: "../data/164.tf"
+
+train:
+    classificaiton_loss_weight: 1
+    regression_loss_weight: 20
+    pos_iou_threshold: 0.5
+    neg_iou_threshold: 0.3
+    negative_ratio: 3
+    learning_rate: 0.00001
+    epoch: 500
+    batch_size: 2
+    val_iter: 10
+    val_batch: 5
+
+test:
+    score_threshold: 0.5
+    test_iter: 10
+    test_batch: 10
+    max_prediction: 100
+
+anchor:
+    scales: [1.0]
+    aspect_ratio: [1.0]
+    base_anchor_size: [32, 32]
+
+summary:
+    summary_dir: "../summary"
+    flush_millis: 10000

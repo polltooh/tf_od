@@ -1,0 +1,57 @@
+tf.keras.layers.Conv2D only support channel_last option
+
+images = tf.ones([1, 3, 240, 352], tf.float32)
+x = tf.keras.layers.Conv2D(16, (3, 3), data_format='channels_first')(images)
+
+2018-09-25 17:53:10.522528: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 AVX512F FMA
+Traceback (most recent call last):
+  File "app.py", line 15, in <module>
+    model = network.builder(images, 10)
+  File "/usr/local/google/home/guanhangwu/Documents/my_git/tf_object_detection/network.py", line 6, in builder
+    x = tf.keras.layers.Convolution2D(16, (3, 3), padding='valid', data_format='channels_first')(images)
+  File "/usr/local/google/home/guanhangwu/.Envs/tf_object_detection/local/lib/python2.7/site-packages/tensorflow/python/keras/engine/base_layer.py", line 736, in __call__
+    outputs = self.call(inputs, *args, **kwargs)
+  File "/usr/local/google/home/guanhangwu/.Envs/tf_object_detection/local/lib/python2.7/site-packages/tensorflow/python/keras/layers/convolutional.py", line 186, in call
+    outputs = self._convolution_op(inputs, self.kernel)
+  File "/usr/local/google/home/guanhangwu/.Envs/tf_object_detection/local/lib/python2.7/site-packages/tensorflow/python/ops/nn_ops.py", line 868, in __call__
+    return self.conv_op(inp, filter)
+  File "/usr/local/google/home/guanhangwu/.Envs/tf_object_detection/local/lib/python2.7/site-packages/tensorflow/python/ops/nn_ops.py", line 520, in __call__
+    return self.call(inp, filter)
+  File "/usr/local/google/home/guanhangwu/.Envs/tf_object_detection/local/lib/python2.7/site-packages/tensorflow/python/ops/nn_ops.py", line 204, in __call__
+    name=self.name)
+  File "/usr/local/google/home/guanhangwu/.Envs/tf_object_detection/local/lib/python2.7/site-packages/tensorflow/python/ops/gen_nn_ops.py", line 981, in conv2d
+    name=name, ctx=_ctx)
+  File "/usr/local/google/home/guanhangwu/.Envs/tf_object_detection/local/lib/python2.7/site-packages/tensorflow/python/ops/gen_nn_ops.py", line 1021, in conv2d_eager_fallback
+    ctx=_ctx, name=name)
+  File "/usr/local/google/home/guanhangwu/.Envs/tf_object_detection/local/lib/python2.7/site-packages/tensorflow/python/eager/execute.py", line 66, in quick_execute
+    six.raise_from(core._status_to_exception(e.code, message), None)
+  File "/usr/local/google/home/guanhangwu/.Envs/tf_object_detection/local/lib/python2.7/site-packages/six.py", line 737, in raise_from
+    raise value
+tensorflow.python.framework.errors_impl.UnimplementedError: Generic conv implementation only supports NHWC tensor format for now. [Op:Conv2D]
+
+
+tf.contrib.framework.add_model_variable doesn't support tf.keras.layers.Conv2D
+
+images = tf.ones([1, 240, 352, 3], tf.float32)
+with tf.contrib.framework.arg_scope([tf.keras.layers.Conv2D], kernel_size=(3, 3)):
+  x = tf.keras.layers.Conv2D(16)(images)
+
+2018-09-25 18:11:36.674365: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 AVX512F FMA
+Traceback (most recent call last):
+  File "app.py", line 15, in <module>
+    model = network.builder(images, 10)
+  File "/usr/local/google/home/guanhangwu/Documents/my_git/tf_object_detection/network.py", line 8, in builder
+    kernel_size=(3, 3)):
+  File "/usr/lib/python2.7/contextlib.py", line 17, in __enter__
+    return self.gen.next()
+  File "/usr/local/google/home/guanhangwu/.Envs/tf_object_detection/local/lib/python2.7/site-packages/tensorflow/contrib/framework/python/ops/arg_scope.py", line 153, in arg_scope
+    _name_op(op))
+ValueError: ('%s is not decorated with @add_arg_scope', ('tensorflow.python.keras.layers.convolutional', 'Conv2D'))
+
+shell returned 1
+
+Press ENTER or type command to continue
+
+
+Seems behave wield
+optimizer = tf.keras.optimizers.Adam(lr=0.1)
