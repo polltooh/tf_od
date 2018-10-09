@@ -36,7 +36,7 @@ def normalizing_bboxes(bboxes, image_height, image_width):
     return normalized_bboxes
 
 
-def add_item_summary(item, network_output, writer, anchors):
+def add_item_summary(item, network_output, writer, anchors, num_classes):
     with writer.as_default(), tf.contrib.summary.always_record_summaries(), tf.device("/cpu:0"):
         image = item["image"]
         bboxes = item["bboxes"]
@@ -60,7 +60,6 @@ def add_item_summary(item, network_output, writer, anchors):
             'image_with_bboxes_converted', image_with_bboxes_converted)
 
         labels_preprocessed = item["labels_preprocessed"]
-        anchor_num = anchors.get_shape().as_list()[0]
         labels_preprocessed = tf.reshape(
             labels_preprocessed, [batch_size, 14, 21, -1])
         labels_heatmap = tf.reduce_any(tf.logical_and(tf.not_equal(
@@ -68,19 +67,16 @@ def add_item_summary(item, network_output, writer, anchors):
         labels_heatmap = tf.cast(labels_heatmap, tf.float32)
         tf.contrib.summary.image('labels_heatmap', labels_heatmap)
 
-        predict_heatmap = tf.nn.softmax(network_output["classification_output"], -1)
-        # first index is the background.
-        predict_heatmap = tf.cast(tf.reduce_max(predict_heatmap[..., 1:], -1) * 255, tf.uint8)
-        tf.contrib.summary.image('predict_heatmap', predict_heatmap[..., tf.newaxis])
+        predict_heatmap = network_output["classification_output"]
+        anchor_num_per_output = int(predict_heatmap.get_shape().as_list()[-1] / num_classes)
 
-        # anchors_boxes = tf.reshape(anchors, [14 * 21, 4, -1])
-
-        # for i, anchors_boxes_layer in enumerate(tf.transpose(anchors_boxes, [2, 0, 1])):
-        #     anchors_boxes_layer = normalizing_bboxes(
-        #         anchors_boxes_layer, image_height, image_width)
-        #     image_with_anchors = tf.image.draw_bounding_boxes(
-        #         tf.image.convert_image_dtype(image[0][tf.newaxis, ...], tf.float32), anchors_boxes_layer[tf.newaxis, ...])
-        #     tf.contrib.summary.image('anchor_box', image_with_anchors)
+        for i in range(anchor_num_per_output):
+            # first index is the background.
+            current_predict_heatmap = tf.nn.softmax(predict_heatmap[..., i * (num_classes + 1): (i + 1) * (num_classes + 1)], -1)
+            current_predict_heatmap = tf.reduce_max(current_predict_heatmap[..., 1:], -1)
+            current_predict_heatmap = tf.cast(current_predict_heatmap * 255, tf.uint8)
+            tf.contrib.summary.image('predict_heatmap_{}'.format(
+                i), current_predict_heatmap[..., tf.newaxis])
 
 
 def add_scalar_summary(value_list, name_list, writer):
@@ -183,8 +179,10 @@ if __name__ == "__main__":
             train_loss = train_loss_sum / config["train"]["val_iter"]
             val_loss = val_loss_sum / config["train"]["val_batch"]
 
-            add_item_summary(train_item, train_network_output, train_summary_writer, anchors)
-            add_item_summary(val_item, val_network_output, val_summary_writer, anchors)
+            add_item_summary(train_item, train_network_output,
+                             train_summary_writer, anchors, config["dataset"]["num_classes"])
+            add_item_summary(val_item, val_network_output,
+                             val_summary_writer, anchors, config["dataset"]["num_classes"])
 
             add_scalar_summary([train_loss], ["train_loss"],
                                train_summary_writer)
