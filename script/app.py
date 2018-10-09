@@ -23,7 +23,8 @@ def normalizing_bboxes(bboxes, image_height, image_width):
     elif tf.rank(bboxes).numpy() == 3:
         axis = 2
     else:
-        raise Exception("bboxes dimention has to be 2 or 3, but get {} instead".format(tf.rank(bboxes)))
+        raise Exception(
+            "bboxes dimention has to be 2 or 3, but get {} instead".format(tf.rank(bboxes)))
 
     y_min, x_min, y_max, x_max = tf.split(
         value=bboxes, num_or_size_splits=4, axis=axis)
@@ -34,16 +35,52 @@ def normalizing_bboxes(bboxes, image_height, image_width):
         axis=axis)
     return normalized_bboxes
 
-def add_item_summary(item, writer):
+
+def add_item_summary(item, network_output, writer, anchors):
     with writer.as_default(), tf.contrib.summary.always_record_summaries(), tf.device("/cpu:0"):
         image = item["image"]
         bboxes = item["bboxes"]
         batch_size, image_height, image_width, _ = image.get_shape().as_list()
 
-        normalized_bboxes = normalizing_bboxes(bboxes, image_height, image_width)
+        normalized_bboxes = normalizing_bboxes(
+            bboxes, image_height, image_width)
         image_with_bboxes = tf.image.draw_bounding_boxes(
             tf.image.convert_image_dtype(image, tf.float32), normalized_bboxes)
         tf.contrib.summary.image('image_with_bboxes', image_with_bboxes)
+
+        bboxes_preprocessed = item["bboxes_preprocessed"]
+        convert_fn = functools.partial(
+            bbox_lib.decode_box_with_anchor, anchors=anchors)
+        bboxes_decoded = tf.map_fn(convert_fn, bboxes_preprocessed)
+        bboxes_decoded_norm = normalizing_bboxes(
+            bboxes_decoded, image_height, image_width)
+        image_with_bboxes_converted = tf.image.draw_bounding_boxes(
+            tf.image.convert_image_dtype(image, tf.float32), bboxes_decoded_norm)
+        tf.contrib.summary.image(
+            'image_with_bboxes_converted', image_with_bboxes_converted)
+
+        labels_preprocessed = item["labels_preprocessed"]
+        anchor_num = anchors.get_shape().as_list()[0]
+        labels_preprocessed = tf.reshape(
+            labels_preprocessed, [batch_size, 14, 21, -1])
+        labels_heatmap = tf.reduce_any(tf.logical_and(tf.not_equal(
+            labels_preprocessed, -2), tf.not_equal(labels_preprocessed, -1)), -1, keepdims=True)
+        labels_heatmap = tf.cast(labels_heatmap, tf.float32)
+        tf.contrib.summary.image('labels_heatmap', labels_heatmap)
+
+        predict_heatmap = tf.nn.softmax(network_output["classification_output"], -1)
+        # first index is the background.
+        predict_heatmap = tf.cast(tf.reduce_max(predict_heatmap[..., 1:], -1) * 255, tf.uint8)
+        tf.contrib.summary.image('predict_heatmap', predict_heatmap[..., tf.newaxis])
+
+        # anchors_boxes = tf.reshape(anchors, [14 * 21, 4, -1])
+
+        # for i, anchors_boxes_layer in enumerate(tf.transpose(anchors_boxes, [2, 0, 1])):
+        #     anchors_boxes_layer = normalizing_bboxes(
+        #         anchors_boxes_layer, image_height, image_width)
+        #     image_with_anchors = tf.image.draw_bounding_boxes(
+        #         tf.image.convert_image_dtype(image[0][tf.newaxis, ...], tf.float32), anchors_boxes_layer[tf.newaxis, ...])
+        #     tf.contrib.summary.image('anchor_box', image_with_anchors)
 
 
 def add_scalar_summary(value_list, name_list, writer):
@@ -106,6 +143,7 @@ if __name__ == "__main__":
     anchor_num_per_output = len(
         config["anchor"]["scales"]) * len(config["anchor"]["aspect_ratio"])
 
+    # num_classes + 1 is to include negative class.
     od_model = model_builder.ObjectDetectionModel(
         config["network"]["base_filter_num"],
         config["network"]["kernel_size"], config["network"]["strides"],
@@ -123,9 +161,9 @@ if __name__ == "__main__":
     train_loss_sum = 0
     for train_index, train_item in enumerate(train_ds):
         with tf.GradientTape() as tape:
-            network_output = od_model(train_item["image"], training=True)
+            train_network_output = od_model(train_item["image"], training=True)
             train_loss = compute_loss_fn(
-                network_output, train_item["bboxes_preprocessed"], train_item["labels_preprocessed"])
+                train_network_output, train_item["bboxes_preprocessed"], train_item["labels_preprocessed"])
             train_loss_sum += train_loss
 
             grads = tape.gradient(train_loss, od_model.variables)
@@ -137,16 +175,16 @@ if __name__ == "__main__":
             for val_index, val_item in enumerate(val_ds):
                 if val_index != 0 and val_index % config["train"]["val_batch"] == 0:
                     break
-                network_output = od_model(val_item["image"], training=False)
+                val_network_output = od_model(val_item["image"], training=False)
                 val_loss = compute_loss_fn(
-                    network_output, val_item["bboxes_preprocessed"], val_item["labels_preprocessed"])
+                    val_network_output, val_item["bboxes_preprocessed"], val_item["labels_preprocessed"])
                 val_loss_sum += val_loss
 
             train_loss = train_loss_sum / config["train"]["val_iter"]
             val_loss = val_loss_sum / config["train"]["val_batch"]
 
-            add_item_summary(train_item, train_summary_writer)
-            add_item_summary(val_item, val_summary_writer)
+            add_item_summary(train_item, train_network_output, train_summary_writer, anchors)
+            add_item_summary(val_item, val_network_output, val_summary_writer, anchors)
 
             add_scalar_summary([train_loss], ["train_loss"],
                                train_summary_writer)
@@ -162,21 +200,25 @@ if __name__ == "__main__":
                 if (config["test"]["test_batch"] is not None and
                         test_index % config["test"]["test_batch"]):
                     break
-                network_output = od_model(test_item["image"], training=False)
+                test_network_output = od_model(
+                    test_item["image"], training=False)
 
             bbox_list, label_list = model_builder.predict(
-                network_output, score_threshold=config["test"]["score_threshold"],
+                test_network_output, score_threshold=config["test"]["score_threshold"],
                 neg_label_value=config["dataset"]["neg_label_value"], anchors=anchors,
-                max_prediction=config["test"]["max_prediction"])
+                max_prediction=config["test"]["max_prediction"],
+                num_classes=config["dataset"]["num_classes"])
             image_list = []
             for image, bbox, label in zip(test_item["image"], bbox_list, label_list):
                 normalized_bboxes = normalizing_bboxes(
-                        bbox, config["dataset"]["input_shape_h"],
-                        config["dataset"]["input_shape_w"])
+                    bbox, config["dataset"]["input_shape_h"],
+                    config["dataset"]["input_shape_w"])
                 image_with_bboxes = tf.image.draw_bounding_boxes(
-                    tf.image.convert_image_dtype(image[tf.newaxis, ...], tf.float32),
+                    tf.image.convert_image_dtype(
+                        image[tf.newaxis, ...], tf.float32),
                     normalized_bboxes[tf.newaxis, ...])
                 image_list.append(image_with_bboxes)
             batch_image_tensor = tf.concat(image_list, axis=0)
             with test_summary_writer.as_default(), tf.contrib.summary.always_record_summaries(), tf.device("/cpu:0"):
-                tf.contrib.summary.image("image_with_bboxes", batch_image_tensor)
+                tf.contrib.summary.image(
+                    "image_with_bboxes", batch_image_tensor)

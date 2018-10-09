@@ -126,18 +126,9 @@ if __name__ == "__main__":
     meta_json['meta']['max_num_box'] = max_num_box[0]
     meta_json['meta']['num_classes'] = max(
         [max(anno['labels']) for anno in park_train_json])
+    print(min([min(anno['labels']) for anno in park_train_json]))
+    # with open('../file_list/164.json', 'w') as f:
+    #     json.dump(park_train_json, f, indent=4)
 
-    with open('../file_list/164.json', 'w') as f:
-        json.dump(park_train_json, f, indent=4)
-
-    # with open('../file_list/WebCamT_Parkway_Test.json', 'w') as f:
-    #     json.dump(park_test_json, f, indent=4)
-
-    # with open('../file_list/WebCamT_Downtown_Train.json', 'w') as f:
-    #     json.dump(downtown_train_json, f, indent=4)
-
-    # with open('../file_list/WebCamT_Downtown_Test.json', 'w') as f:
-    #     json.dump(downtown_test_json, f, indent=4)
-
-    with open('../file_list/WebCamT_meta.json', 'w') as f:
-        json.dump(meta_json, f, indent=4)
+    # with open('../file_list/WebCamT_meta.json', 'w') as f:
+    #     json.dump(meta_json, f, indent=4)

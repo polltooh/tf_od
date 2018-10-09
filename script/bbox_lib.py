@@ -122,9 +122,7 @@ def encode_box_with_anchor(bbox, anchor):
 
 
 def decode_box_with_anchor(encoded_bbox, anchors):
-
     ycenter_a, xcenter_a, ha, wa = get_center_coordinates_and_sizes(anchors)
-
     ty, tx, th, tw = tf.unstack(tf.transpose(encoded_bbox))
     w = tf.exp(tw) * wa
     h = tf.exp(th) * ha
