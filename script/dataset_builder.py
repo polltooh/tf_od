@@ -89,10 +89,16 @@ def preprocess_data(record, anchors, pos_iou_threshold, neg_iou_threshold,
 
 
 def read_data(file_name, anchors, epoch, batch_size, pos_iou_threshold, neg_iou_threshold,
-              neg_label_value, ignore_label_value, image_arg_dict):
+              neg_label_value, ignore_label_value, shuffle_buffer_size=None, num_shard=None,
+              image_arg_dict=None):
 
     ds = tf.data.TFRecordDataset(file_name)
+    ds = ds.repeat(epoch)
+    if shuffle_buffer_size is not None:
+        ds = ds.shuffle(shuffle_buffer_size)
+
     ds = ds.map(parser)
+
     preprocess_data_anchor = functools.partial(
         preprocess_data, anchors=anchors,
         pos_iou_threshold=pos_iou_threshold, neg_iou_threshold=neg_iou_threshold,
@@ -100,7 +106,6 @@ def read_data(file_name, anchors, epoch, batch_size, pos_iou_threshold, neg_iou_
         image_arg_dict=image_arg_dict)
 
     ds = ds.map(preprocess_data_anchor)
-    ds = ds.repeat(epoch)
     padded_shapes = {"bboxes": [None, 4], "labels": [None], "image": [None, None, 3],
                      "mask": [None, None],
                      "bboxes_preprocessed": [None, None], "labels_preprocessed": [None]}
@@ -112,6 +117,7 @@ def read_data(file_name, anchors, epoch, batch_size, pos_iou_threshold, neg_iou_
 
     ds = ds.padded_batch(
         batch_size, padded_shapes=padded_shapes, padding_values=padding_values)
+
     ds = ds.make_one_shot_iterator()
 
     return ds

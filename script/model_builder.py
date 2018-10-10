@@ -17,8 +17,6 @@ def compute_loss(network_output, bboxes, labels, num_classes, c_weight, r_weight
     with tf.variable_scope("losses"):
         batch_size = bboxes.shape[0].value
         one_hot_labels = tf.one_hot(labels + 1, num_classes + 1)
-        # non_ignore_mask = tf.cast(tf.logical_not(
-        #     tf.equal(labels, ignore_label_value)), tf.float32)
         negative_mask = tf.cast(tf.equal(labels, neg_label_value), tf.float32)
         positive_mask = tf.cast(tf.logical_and(tf.not_equal(labels, ignore_label_value),
                                                tf.not_equal(labels, neg_label_value)), tf.float32)
@@ -103,12 +101,16 @@ class ObjectDetectionModel(tf.keras.Model):
                       'strides': strides,
                       'padding': 'valid'}
             conv_layers = []
+            bn_layers = []
             for layer_num in range(repeat_num):
                 conv_layers.append(tf.keras.layers.Conv2D(
                     base_filter_num * (layer_num + 1), **params))
+                bn_layers.append(tf.keras.layers.BatchNormalization())
 
             self.conv_layers = conv_layers
-            self.bn = tf.keras.layers.BatchNormalization()
+            self.bn_layers = bn_layers
+            leaky_relu_alpha = 0.3
+            self.activation = tf.keras.layers.LeakyReLU(alpha=leaky_relu_alpha)
             dropout_rate = 0.5
             self.dropout = tf.keras.layers.Dropout(dropout_rate)
 
@@ -125,12 +127,12 @@ class ObjectDetectionModel(tf.keras.Model):
                 input_image_tensor, tf.float32)
 
         h = input_image_tensor
-        for layer in self.conv_layers:
-            h = layer(h)
-            # if training:
-            #     h = self.bn(h)
-        if training:
-            h = self.dropout(h)
+        for conv, bn in zip(self.conv_layers, self.bn_layers):
+            h = conv(h)
+            h = bn(h, training=training)
+            h = self.activation(h)
+
+        h = self.dropout(h, training=training)
 
         classification_output = self.classification_branch(h)
         regression_output = self.regression_branch(h)
