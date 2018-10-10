@@ -152,6 +152,9 @@ if __name__ == "__main__":
         config["network"]["layer_repeat_num"], config["dataset"]["num_classes"],
         anchor_num_per_output)
 
+    if config["save"]["load_model"]:
+        od_model.load_weights(config["save"]["model_dir"])
+
     compute_loss_fn = functools.partial(
         model_builder.compute_loss, num_classes=config["dataset"]["num_classes"],
         c_weight=config["train"]["classificaiton_loss_weight"],
@@ -227,3 +230,7 @@ if __name__ == "__main__":
             with test_summary_writer.as_default(), tf.contrib.summary.always_record_summaries(), tf.device("/cpu:0"):
                 tf.contrib.summary.image(
                     "image_with_bboxes", batch_image_tensor)
+
+        if train_index != 0 and train_index % config["save"]["save_per_train_iter"]:
+            od_model.save_weights(config["save"]["model_dir"])
+

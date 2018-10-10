@@ -40,8 +40,6 @@ test:
     max_prediction: 100
 
 anchor:
-    # scales: [0.5, 1.0, 2.0]
-    # aspect_ratio: [0.5, 1.0, 2.0]
     scales: [1.0, 2.0]
     aspect_ratio: [1.0]
     base_anchor_size: [32, 32]
@@ -49,3 +47,8 @@ anchor:
 summary:
     summary_dir: "../summary"
     flush_millis: 10000
+
+save:
+    load_model: False
+    save_per_train_iter: 10
+    model_dir: "../model_dir/od_model" 
