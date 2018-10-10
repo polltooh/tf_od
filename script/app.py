@@ -17,23 +17,6 @@ tf.enable_eager_execution()
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
-def normalizing_bboxes(bboxes, image_height, image_width):
-    if tf.rank(bboxes).numpy() == 2:
-        axis = 1
-    elif tf.rank(bboxes).numpy() == 3:
-        axis = 2
-    else:
-        raise Exception(
-            "bboxes dimention has to be 2 or 3, but get {} instead".format(tf.rank(bboxes)))
-
-    y_min, x_min, y_max, x_max = tf.split(
-        value=bboxes, num_or_size_splits=4, axis=axis)
-
-    normalized_bboxes = tf.concat(
-        [y_min / image_height, x_min / image_width,
-            y_max / image_height, x_max / image_width],
-        axis=axis)
-    return normalized_bboxes
 
 
 def add_item_summary(item, network_output, writer, anchors, num_classes):
@@ -42,7 +25,7 @@ def add_item_summary(item, network_output, writer, anchors, num_classes):
         bboxes = item["bboxes"]
         batch_size, image_height, image_width, _ = image.get_shape().as_list()
 
-        normalized_bboxes = normalizing_bboxes(
+        normalized_bboxes = bbox_lib.normalizing_bbox(
             bboxes, image_height, image_width)
         image_with_bboxes = tf.image.draw_bounding_boxes(
             tf.image.convert_image_dtype(image, tf.float32), normalized_bboxes)
@@ -52,7 +35,7 @@ def add_item_summary(item, network_output, writer, anchors, num_classes):
         convert_fn = functools.partial(
             bbox_lib.decode_box_with_anchor, anchors=anchors)
         bboxes_decoded = tf.map_fn(convert_fn, bboxes_preprocessed)
-        bboxes_decoded_norm = normalizing_bboxes(
+        bboxes_decoded_norm = bbox_lib.normalizing_bbox(
             bboxes_decoded, image_height, image_width)
         image_with_bboxes_converted = tf.image.draw_bounding_boxes(
             tf.image.convert_image_dtype(image, tf.float32), bboxes_decoded_norm)
@@ -217,7 +200,7 @@ if __name__ == "__main__":
 
             image_list = []
             for image, bbox, label in zip(test_item["image"], bbox_list, label_list):
-                normalized_bboxes = normalizing_bboxes(
+                normalized_bboxes = bbox_lib.normalizing_bbox(
                     bbox, config["dataset"]["input_shape_h"],
                     config["dataset"]["input_shape_w"])
                 image_with_bboxes = tf.image.draw_bounding_boxes(

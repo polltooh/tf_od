@@ -133,3 +133,22 @@ def decode_box_with_anchor(encoded_bbox, anchors):
     ymax = ycenter + h / 2.
     xmax = xcenter + w / 2.
     return tf.transpose(tf.stack([ymin, xmin, ymax, xmax]))
+
+
+def normalizing_bbox(bboxes, image_height, image_width):
+    if tf.rank(bboxes).numpy() == 2:
+        axis = 1
+    elif tf.rank(bboxes).numpy() == 3:
+        axis = 2
+    else:
+        raise Exception(
+            "bboxes dimention has to be 2 or 3, but get {} instead".format(tf.rank(bboxes)))
+
+    y_min, x_min, y_max, x_max = tf.split(
+        value=bboxes, num_or_size_splits=4, axis=axis)
+
+    normalized_bboxes = tf.concat(
+        [y_min / image_height, x_min / image_width,
+            y_max / image_height, x_max / image_width],
+        axis=axis)
+    return normalized_bboxes
