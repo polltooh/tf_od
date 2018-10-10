@@ -32,6 +32,7 @@ train:
     batch_size: 2
     val_iter: 10
     val_batch: 5
+    shuffle_buffer_size: 1000
 
 test:
     score_threshold: 0.5

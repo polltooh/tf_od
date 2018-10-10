@@ -88,8 +88,8 @@ def preprocess_data(record, anchors, pos_iou_threshold, neg_iou_threshold,
     return record
 
 
-def read_data(file_name, anchors, epoch, batch_size, pos_iou_threshold, neg_iou_threshold,
-              neg_label_value, ignore_label_value, shuffle_buffer_size=None, num_shard=None,
+def read_data(file_name, anchors, batch_size, pos_iou_threshold, neg_iou_threshold,
+              neg_label_value, ignore_label_value, epoch=None, shuffle_buffer_size=None,
               image_arg_dict=None):
 
     ds = tf.data.TFRecordDataset(file_name)

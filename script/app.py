@@ -132,12 +132,11 @@ if __name__ == "__main__":
 
     train_ds = dataset_builder_fn(
         config["dataset"]["train_file_name"], epoch=config["train"]["epoch"],
+        shuffle_buffer_size=config["train"]["shuffle_buffer_size"],
         image_arg_dict=config["dataset"]["image_arg_dict"])
 
-    val_ds = dataset_builder_fn(config["dataset"]["val_file_name"],
-                                epoch=None, image_arg_dict=None)
-    test_ds = dataset_builder_fn(config["dataset"]["test_file_name"],
-                                 epoch=None, image_arg_dict=None)
+    val_ds = dataset_builder_fn(config["dataset"]["val_file_name"])
+    test_ds = dataset_builder_fn(config["dataset"]["test_file_name"])
 
     optimizer = tf.train.AdamOptimizer(
         learning_rate=config["train"]["learning_rate"])
