@@ -22,10 +22,12 @@ def intersection(bbox1, bbox2, scope=None):
             value=bbox2, num_or_size_splits=4, axis=1)
         all_pairs_min_ymax = tf.minimum(y_max1, tf.transpose(y_max2))
         all_pairs_max_ymin = tf.maximum(y_min1, tf.transpose(y_min2))
-        intersect_heights = tf.maximum(0.0, all_pairs_min_ymax - all_pairs_max_ymin)
+        intersect_heights = tf.maximum(
+            0.0, all_pairs_min_ymax - all_pairs_max_ymin)
         all_pairs_min_xmax = tf.minimum(x_max1, tf.transpose(x_max2))
         all_pairs_max_xmin = tf.maximum(x_min1, tf.transpose(x_min2))
-        intersect_widths = tf.maximum(0.0, all_pairs_min_xmax - all_pairs_max_xmin)
+        intersect_widths = tf.maximum(
+            0.0, all_pairs_min_xmax - all_pairs_max_xmin)
         return intersect_heights * intersect_widths
 
 
@@ -104,6 +106,7 @@ def get_center_coordinates_and_sizes(box_corners, scope=None):
         ycenter = ymin + height / 2.
         xcenter = xmin + width / 2.
         return [ycenter, xcenter, height, width]
+
 
 def encode_box_with_anchor(bbox, anchor):
     ycenter_a, xcenter_a, ha, wa = get_center_coordinates_and_sizes(anchor)

@@ -17,61 +17,6 @@ tf.enable_eager_execution()
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
-
-
-def add_item_summary(item, network_output, writer, anchors, num_classes):
-    with writer.as_default(), tf.contrib.summary.always_record_summaries(), tf.device("/cpu:0"):
-        image = item["image"]
-        bboxes = item["bboxes"]
-        batch_size, image_height, image_width, _ = image.get_shape().as_list()
-
-        normalized_bboxes = bbox_lib.normalizing_bbox(
-            bboxes, image_height, image_width)
-        image_with_bboxes = tf.image.draw_bounding_boxes(
-            tf.image.convert_image_dtype(image, tf.float32), normalized_bboxes)
-        tf.contrib.summary.image('image_with_bboxes', image_with_bboxes)
-
-        bboxes_preprocessed = item["bboxes_preprocessed"]
-        convert_fn = functools.partial(
-            bbox_lib.decode_box_with_anchor, anchors=anchors)
-        bboxes_decoded = tf.map_fn(convert_fn, bboxes_preprocessed)
-        bboxes_decoded_norm = bbox_lib.normalizing_bbox(
-            bboxes_decoded, image_height, image_width)
-        image_with_bboxes_converted = tf.image.draw_bounding_boxes(
-            tf.image.convert_image_dtype(image, tf.float32), bboxes_decoded_norm)
-        tf.contrib.summary.image(
-            'image_with_bboxes_converted', image_with_bboxes_converted)
-
-        labels_preprocessed = item["labels_preprocessed"]
-        labels_preprocessed = tf.reshape(
-            labels_preprocessed, [batch_size, 14, 21, -1])
-        labels_heatmap = tf.reduce_any(tf.logical_and(tf.not_equal(
-            labels_preprocessed, -2), tf.not_equal(labels_preprocessed, -1)), -1, keepdims=True)
-        labels_heatmap = tf.cast(labels_heatmap, tf.float32)
-        tf.contrib.summary.image('labels_heatmap', labels_heatmap)
-
-        predict_heatmap = network_output["classification_output"]
-        anchor_num_per_output = int(
-            predict_heatmap.get_shape().as_list()[-1] / num_classes)
-
-        for i in range(anchor_num_per_output):
-            # first index is the background.
-            current_predict_heatmap = tf.nn.softmax(
-                predict_heatmap[..., i * (num_classes + 1): (i + 1) * (num_classes + 1)], -1)
-            current_predict_heatmap = tf.reduce_max(
-                current_predict_heatmap[..., 1:], -1)
-            current_predict_heatmap = tf.cast(
-                current_predict_heatmap * 255, tf.uint8)
-            tf.contrib.summary.image('predict_heatmap_{}'.format(
-                i), current_predict_heatmap[..., tf.newaxis])
-
-
-def add_scalar_summary(value_list, name_list, writer):
-    with writer.as_default(), tf.contrib.summary.always_record_summaries(), tf.device("/cpu:0"):
-        for value, name in zip(value_list, name_list):
-            tf.contrib.summary.scalar(name, value)
-
-
 if __name__ == "__main__":
     with open("config.yaml", 'r') as config_file:
         config = yaml.load(config_file)
@@ -150,7 +95,8 @@ if __name__ == "__main__":
         with tf.GradientTape() as tape:
             train_network_output = od_model(train_item["image"], training=True)
             train_loss = compute_loss_fn(
-                train_network_output, train_item["bboxes_preprocessed"], train_item["labels_preprocessed"])
+                train_network_output, train_item["bboxes_preprocessed"],
+                train_item["labels_preprocessed"])
             train_loss_sum += train_loss
 
             grads = tape.gradient(train_loss, od_model.variables)
@@ -164,20 +110,22 @@ if __name__ == "__main__":
                     break
                 val_network_output = od_model(val_item["image"], training=False)
                 val_loss = compute_loss_fn(
-                    val_network_output, val_item["bboxes_preprocessed"], val_item["labels_preprocessed"])
+                    val_network_output, val_item["bboxes_preprocessed"],
+                    val_item["labels_preprocessed"])
                 val_loss_sum += val_loss
 
             train_loss = train_loss_sum / config["train"]["val_iter"]
             val_loss = val_loss_sum / config["train"]["val_batch"]
 
-            add_item_summary(train_item, train_network_output,
-                             train_summary_writer, anchors, config["dataset"]["num_classes"])
-            add_item_summary(val_item, val_network_output,
-                             val_summary_writer, anchors, config["dataset"]["num_classes"])
+            utils.add_item_summary(train_item, train_network_output,
+                                   train_summary_writer, anchors, config["dataset"]["num_classes"])
+            utils.add_item_summary(val_item, val_network_output,
+                                   val_summary_writer, anchors, config["dataset"]["num_classes"])
 
-            add_scalar_summary([train_loss], ["train_loss"],
-                               train_summary_writer)
-            add_scalar_summary([val_loss], ["val_loss"], val_summary_writer)
+            utils.add_scalar_summary([train_loss], ["train_loss"],
+                                     train_summary_writer)
+            utils.add_scalar_summary(
+                [val_loss], ["val_loss"], val_summary_writer)
 
             print("Loss at step {:04d}: train loss: {:.3f}, val loss: {:3f}".format(
                 train_index, train_loss, val_loss))
@@ -193,7 +141,8 @@ if __name__ == "__main__":
                     test_item["image"], training=False)
 
             bbox_list, label_list = model_builder.predict(
-                test_network_output, mask=test_item["mask"], score_threshold=config["test"]["score_threshold"],
+                test_network_output, mask=test_item["mask"],
+                score_threshold=config["test"]["score_threshold"],
                 neg_label_value=config["dataset"]["neg_label_value"], anchors=anchors,
                 max_prediction=config["test"]["max_prediction"],
                 num_classes=config["dataset"]["num_classes"])
@@ -215,4 +164,3 @@ if __name__ == "__main__":
 
         if train_index != 0 and train_index % config["save"]["save_per_train_iter"]:
             od_model.save_weights(config["save"]["model_dir"])
-

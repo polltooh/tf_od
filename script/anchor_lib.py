@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+
 def expanded_shape(orig_shape, start_dim, num_dims):
     """Inserts multiple ones into a shape vector.
     Inserts an all-1 vector of length num_dims at position start_dim into a shape.
