@@ -13,6 +13,13 @@ dataset:
     train_file_name: "../data/164_one_example.tf"
     val_file_name: "../data/164_one_example.tf"
     test_file_name: "../data/164_one_example.tf"
+    image_arg_dict:
+        random_brightness_max_delta: 0.125
+        random_saturation_lower: 0.5
+        random_saturation_upper: 1.5
+        random_hue_max_delta: 0.2
+        random_contrast_lower: 0.5
+        random_contrast_upper: 1.5
 
 train:
     classificaiton_loss_weight: 1
@@ -20,7 +27,7 @@ train:
     pos_iou_threshold: 0.5
     neg_iou_threshold: 0.3
     negative_ratio: 3
-    learning_rate: 0.00001
+    learning_rate: 0.001
     epoch: 500000
     batch_size: 2
     val_iter: 10

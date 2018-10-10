@@ -68,13 +68,17 @@ def add_item_summary(item, network_output, writer, anchors, num_classes):
         tf.contrib.summary.image('labels_heatmap', labels_heatmap)
 
         predict_heatmap = network_output["classification_output"]
-        anchor_num_per_output = int(predict_heatmap.get_shape().as_list()[-1] / num_classes)
+        anchor_num_per_output = int(
+            predict_heatmap.get_shape().as_list()[-1] / num_classes)
 
         for i in range(anchor_num_per_output):
             # first index is the background.
-            current_predict_heatmap = tf.nn.softmax(predict_heatmap[..., i * (num_classes + 1): (i + 1) * (num_classes + 1)], -1)
-            current_predict_heatmap = tf.reduce_max(current_predict_heatmap[..., 1:], -1)
-            current_predict_heatmap = tf.cast(current_predict_heatmap * 255, tf.uint8)
+            current_predict_heatmap = tf.nn.softmax(
+                predict_heatmap[..., i * (num_classes + 1): (i + 1) * (num_classes + 1)], -1)
+            current_predict_heatmap = tf.reduce_max(
+                current_predict_heatmap[..., 1:], -1)
+            current_predict_heatmap = tf.cast(
+                current_predict_heatmap * 255, tf.uint8)
             tf.contrib.summary.image('predict_heatmap_{}'.format(
                 i), current_predict_heatmap[..., tf.newaxis])
 
@@ -127,11 +131,13 @@ if __name__ == "__main__":
         ignore_label_value=config["dataset"]["ignore_label_value"])
 
     train_ds = dataset_builder_fn(
-        config["dataset"]["train_file_name"], epoch=config["train"]["epoch"])
+        config["dataset"]["train_file_name"], epoch=config["train"]["epoch"],
+        image_arg_dict=config["dataset"]["image_arg_dict"])
 
-    val_ds = dataset_builder_fn(config["dataset"]["val_file_name"], epoch=None)
-    test_ds = dataset_builder_fn(
-        config["dataset"]["test_file_name"], epoch=None)
+    val_ds = dataset_builder_fn(config["dataset"]["val_file_name"],
+                                epoch=None, image_arg_dict=None)
+    test_ds = dataset_builder_fn(config["dataset"]["test_file_name"],
+                                 epoch=None, image_arg_dict=None)
 
     optimizer = tf.train.AdamOptimizer(
         learning_rate=config["train"]["learning_rate"])
@@ -202,10 +208,11 @@ if __name__ == "__main__":
                     test_item["image"], training=False)
 
             bbox_list, label_list = model_builder.predict(
-                test_network_output, score_threshold=config["test"]["score_threshold"],
+                test_network_output, mask=test_item["mask"], score_threshold=config["test"]["score_threshold"],
                 neg_label_value=config["dataset"]["neg_label_value"], anchors=anchors,
                 max_prediction=config["test"]["max_prediction"],
                 num_classes=config["dataset"]["num_classes"])
+
             image_list = []
             for image, bbox, label in zip(test_item["image"], bbox_list, label_list):
                 normalized_bboxes = normalizing_bboxes(

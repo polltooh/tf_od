@@ -51,13 +51,16 @@ def compute_loss(network_output, bboxes, labels, num_classes, c_weight, r_weight
         return c_weight * c_loss + r_weight * r_loss
 
 
-def predict(network_output, score_threshold, neg_label_value, anchors, max_prediction, num_classes):
+def predict(network_output, mask, score_threshold, neg_label_value, anchors, max_prediction, num_classes):
     classification_output = network_output['classification_output']
     batch_size, _, _, output_dim = classification_output.get_shape().as_list()
     regression_output = network_output['regression_output']
     bbox_list = []
     label_list = []
-    for single_classification_output, single_regression_output in zip(classification_output, regression_output):
+
+    ay, ax, ah, aw = bbox_lib.get_center_coordinates_and_sizes(anchors)
+    anchor_center_index = tf.cast(tf.transpose(tf.stack([ay, ax])), tf.int32)
+    for single_classification_output, single_regression_output, single_mask in zip(classification_output, regression_output, mask):
         # num_classes + 1 due to the negative class.
         single_classification_output = tf.reshape(
             single_classification_output, [-1, num_classes + 1])
@@ -69,7 +72,8 @@ def predict(network_output, score_threshold, neg_label_value, anchors, max_predi
         # - 1 due to the negative class.
         max_index = tf.argmax(single_classification_output, 1) - 1
         non_negative_mask = tf.not_equal(max_index, -1)
-        foreground_mask = tf.logical_and(confident_mask, non_negative_mask)
+        in_mask = tf.gather_nd(single_mask, anchor_center_index)
+        foreground_mask = tf.logical_and(in_mask, tf.logical_and(confident_mask, non_negative_mask))
 
         valid_labels = tf.boolean_mask(max_index, foreground_mask)
 

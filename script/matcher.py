@@ -63,6 +63,7 @@ def matching_bbox_label(bboxes, labels, anchors, pos_iou_threshold, neg_iou_thre
 
     ignore_labels = tf.ones(
         anchors.shape[0].value, tf.int64) * ignore_label_value
+
     neg_labels = tf.ones(anchors.shape[0].value, tf.int64) * neg_label_value
 
     labels_encoded = tf.where(neg_match, neg_labels, labels_encoded)
