@@ -35,7 +35,7 @@ if __name__ == "__main__":
         flush_millis=config["summary"]["flush_millis"])
 
     get_output_shape_fn = functools.partial(
-        utils.get_output_shape, kernel_size=config["network"]["kernel_size"],
+        model_builder.get_output_shape, kernel_size=config["network"]["kernel_size"],
         strides=config["network"]["strides"],
         layer_repeat_num=config["network"]["layer_repeat_num"])
 

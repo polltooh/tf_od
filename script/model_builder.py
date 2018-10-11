@@ -5,6 +5,7 @@ import bbox_lib
 def hard_negative_loss_mining(c_loss, negative_mask, k):
     # make sure at least one negative example
     k = tf.maximum(k, 1)
+    # make sure at most all negative.
     k = tf.minimum(k, c_loss.shape[-1])
     neg_c_loss = c_loss * negative_mask
     neg_c_loss = tf.nn.top_k(neg_c_loss, k)[0]
@@ -96,22 +97,37 @@ def predict(network_output, mask, score_threshold, neg_label_value, anchors,
     return bbox_list, label_list
 
 
+def get_output_shape(input_size, kernel_size, strides, layer_repeat_num):
+    for num in xrange(layer_repeat_num):
+        half = (kernel_size - 1) / 2
+        input_size = int((input_size - half) / strides)
+    return input_size
+
+
 class ObjectDetectionModel(tf.keras.Model):
     def __init__(self, base_filter_num, kernel_size, strides, repeat_num, num_classes,
                  anchor_num_per_output):
         super(ObjectDetectionModel, self).__init__()
         with tf.variable_scope("object_detection_model"):
-            params = {'kernel_size': [kernel_size, kernel_size],
-                      'strides': strides,
-                      'padding': 'valid'}
-            conv_layers = []
+            params_1 = {'kernel_size': [kernel_size, kernel_size],
+                        'strides': strides,
+                        'padding': 'valid'}
+
+            params_2 = {'kernel_size': [kernel_size, kernel_size],
+                        'strides': 1,
+                        'padding': 'same'}
+            conv_layers_1 = []
+            conv_layers_2 = []
             bn_layers = []
             for layer_num in range(repeat_num):
-                conv_layers.append(tf.keras.layers.Conv2D(
-                    base_filter_num * (layer_num + 1), **params))
+                conv_layers_1.append(tf.keras.layers.Conv2D(
+                    base_filter_num * (layer_num + 1), **params_1))
+                conv_layers_2.append(tf.keras.layers.Conv2D(
+                    base_filter_num * (layer_num + 1), **params_2))
                 bn_layers.append(tf.keras.layers.BatchNormalization())
 
-            self.conv_layers = conv_layers
+            self.conv_layers_1 = conv_layers_1
+            self.conv_layers_2 = conv_layers_2
             self.bn_layers = bn_layers
             leaky_relu_alpha = 0.3
             self.activation = tf.keras.layers.LeakyReLU(alpha=leaky_relu_alpha)
@@ -131,8 +147,9 @@ class ObjectDetectionModel(tf.keras.Model):
                 input_image_tensor, tf.float32)
 
         h = input_image_tensor
-        for conv, bn in zip(self.conv_layers, self.bn_layers):
-            h = conv(h)
+        for conv1, conv2, bn in zip(self.conv_layers_1, self.conv_layers_2, self.bn_layers):
+            h = conv1(h)
+            h = conv2(h)
             h = bn(h, training=training)
             h = self.activation(h)
 
