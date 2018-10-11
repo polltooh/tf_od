@@ -4,13 +4,6 @@ import tensorflow as tf
 import bbox_lib
 
 
-def get_output_shape(input_size, kernel_size, strides, layer_repeat_num):
-    for num in xrange(layer_repeat_num):
-        half = (kernel_size - 1) / 2
-        input_size = int((input_size - half) / strides)
-    return input_size
-
-
 def add_item_summary(item, network_output, writer, anchors, num_classes):
     with writer.as_default(), tf.contrib.summary.always_record_summaries(), tf.device("/cpu:0"):
         image = item["image"]
