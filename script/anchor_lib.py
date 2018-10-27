@@ -3,6 +3,7 @@ import tensorflow as tf
 
 def expanded_shape(orig_shape, start_dim, num_dims):
     """Inserts multiple ones into a shape vector.
+
     Inserts an all-1 vector of length num_dims at position start_dim into a shape.
     Can be combined with tf.reshape to generalize tf.expand_dims.
 
@@ -64,6 +65,7 @@ def anchor_gen(grid_height, grid_width, scales=(0.5, 1.0, 2.0), aspect_ratios=(0
 
 def meshgrid(x, y):
     """Tiles the contents of x and y into a pair of grids.
+
     Multidimensional analog of numpy.meshgrid, giving the same behavior if x and y
     are vectors. Generally, this will give:
     xgrid(i1, ..., i_m, j_1, ..., j_n) = x(j_1, ..., j_n)

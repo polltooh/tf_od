@@ -3,6 +3,7 @@ import bbox_lib
 
 
 def hard_negative_loss_mining(c_loss, negative_mask, k):
+    """Hard negative mining in classification loss."""
     # make sure at least one negative example
     k = tf.maximum(k, 1)
     # make sure at most all negative.
@@ -14,6 +15,7 @@ def hard_negative_loss_mining(c_loss, negative_mask, k):
 
 def compute_loss(network_output, bboxes, labels, num_classes, c_weight, r_weight,
                  neg_label_value, ignore_label_value, negative_ratio):
+    """Compute loss function."""
 
     with tf.variable_scope("losses"):
         batch_size = bboxes.shape[0].value
@@ -52,6 +54,8 @@ def compute_loss(network_output, bboxes, labels, num_classes, c_weight, r_weight
 
 def predict(network_output, mask, score_threshold, neg_label_value, anchors,
             max_prediction, num_classes):
+    """Decode predictions from the neural network."""
+
     classification_output = network_output['classification_output']
     batch_size, _, _, output_dim = classification_output.get_shape().as_list()
     regression_output = network_output['regression_output']
@@ -98,10 +102,21 @@ def predict(network_output, mask, score_threshold, neg_label_value, anchors,
 
 
 def get_output_shape(input_size, kernel_size, strides, layer_repeat_num):
+    """Calculate the output shape of the network."""
     for num in xrange(layer_repeat_num):
         half = (kernel_size - 1) / 2
         input_size = int((input_size - half) / strides)
     return input_size
+
+
+def build_model(num_classes, anchor_num_per_output):
+    vgg = tf.keras.applications.vgg19.VGG19(include_top=False, weights='imagenet')
+    classification_branch = tf.keras.layers.Conv2D(
+            (num_classes + 1) * anchor_num_per_output, (1, 1))(vgg.output)
+    regression_branch = tf.keras.layers.Conv2D(
+            4 * anchor_num_per_output, (1, 1))(vgg.output)
+    model_outputs = [classification_branch, regression_branch]
+    return tf.keras.models.Model(vgg.input, model_outputs)
 
 
 class ObjectDetectionModel(tf.keras.Model):

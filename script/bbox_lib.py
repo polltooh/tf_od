@@ -94,6 +94,7 @@ def get_center_coordinates_and_sizes(box_corners, scope=None):
     """Computes the center coordinates, height and width of the boxes.
 
     Args:
+        box_corners: bounding box in corner representation.
         scope: name scope of the function.
 
     Returns:
@@ -108,8 +109,17 @@ def get_center_coordinates_and_sizes(box_corners, scope=None):
         return [ycenter, xcenter, height, width]
 
 
-def encode_box_with_anchor(bbox, anchor):
-    ycenter_a, xcenter_a, ha, wa = get_center_coordinates_and_sizes(anchor)
+def encode_box_with_anchor(bbox, anchors):
+    """Encode box with anchors
+
+    Args:
+        bbox: bounding box in corner representation.
+        anchors: anchors in corner represnetation.
+
+    Returns:
+        bounding box in delta form.
+    """
+    ycenter_a, xcenter_a, ha, wa = get_center_coordinates_and_sizes(anchors)
     ycenter, xcenter, h, w = get_center_coordinates_and_sizes(bbox)
     # Avoid NaN in division and log below.
     ha += EPSILON
@@ -125,6 +135,15 @@ def encode_box_with_anchor(bbox, anchor):
 
 
 def decode_box_with_anchor(encoded_bbox, anchors):
+    """Decode box with anchors.
+
+    Args:
+        encoded_bbox: bounding box in delta form.
+        anchors: anchors in corner represnetation.
+
+    Returns:
+        Bounding box in corner representation.
+    """
     ycenter_a, xcenter_a, ha, wa = get_center_coordinates_and_sizes(anchors)
     ty, tx, th, tw = tf.unstack(tf.transpose(encoded_bbox))
     w = tf.exp(tw) * wa
@@ -138,20 +157,30 @@ def decode_box_with_anchor(encoded_bbox, anchors):
     return tf.transpose(tf.stack([ymin, xmin, ymax, xmax]))
 
 
-def normalizing_bbox(bboxes, image_height, image_width):
-    if tf.rank(bboxes).numpy() == 2:
+def normalizing_bbox(bbox, image_height, image_width):
+    """Normalize bouding box with respect to image size.
+
+    Args:
+        bbox: bouding box in corner representation.
+        image_height: image height.
+        image_width: image width.
+
+    Returns:
+        Normalized bounding box coordinate to [0, 1].
+    """
+    if tf.rank(bbox).numpy() == 2:
         axis = 1
-    elif tf.rank(bboxes).numpy() == 3:
+    elif tf.rank(bbox).numpy() == 3:
         axis = 2
     else:
         raise Exception(
-            "bboxes dimention has to be 2 or 3, but get {} instead".format(tf.rank(bboxes)))
+            "bbox dimention has to be 2 or 3, but get {} instead".format(tf.rank(bbox)))
 
     y_min, x_min, y_max, x_max = tf.split(
-        value=bboxes, num_or_size_splits=4, axis=axis)
+        value=bbox, num_or_size_splits=4, axis=axis)
 
-    normalized_bboxes = tf.concat(
+    normalized_bbox = tf.concat(
         [y_min / image_height, x_min / image_width,
             y_max / image_height, x_max / image_width],
         axis=axis)
-    return normalized_bboxes
+    return normalized_bbox
