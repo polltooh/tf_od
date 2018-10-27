@@ -34,13 +34,8 @@ if __name__ == "__main__":
         os.path.join(config["summary"]["summary_dir"], "test"),
         flush_millis=config["summary"]["flush_millis"])
 
-    get_output_shape_fn = functools.partial(
-        model_builder.get_output_shape, kernel_size=config["network"]["kernel_size"],
-        strides=config["network"]["strides"],
-        layer_repeat_num=config["network"]["layer_repeat_num"])
-
-    output_h = get_output_shape_fn(config["dataset"]["input_shape_h"])
-    output_w = get_output_shape_fn(config["dataset"]["input_shape_w"])
+    output_h = 7
+    output_w = 11
     anchor_strides = [config["dataset"]["input_shape_h"] / output_h,
                       config["dataset"]["input_shape_w"] / output_w]
 
@@ -72,10 +67,9 @@ if __name__ == "__main__":
     anchor_num_per_output = len(
         config["anchor"]["scales"]) * len(config["anchor"]["aspect_ratio"])
 
-    od_model = model_builder.ObjectDetectionModel(
-        config["network"]["base_filter_num"],
-        config["network"]["kernel_size"], config["network"]["strides"],
-        config["network"]["layer_repeat_num"], config["dataset"]["num_classes"],
+    # num_classes + 1 is to include negative class.
+    od_model = model_builder.build_model(
+        config["dataset"]["num_classes"],
         anchor_num_per_output)
 
     if config["save"]["load_model"]:
@@ -92,7 +86,9 @@ if __name__ == "__main__":
     train_loss_sum = 0
     for train_index, train_item in enumerate(train_ds):
         with tf.GradientTape() as tape:
-            train_network_output = od_model(train_item["image"], training=True)
+            input_image_tensor = tf.image.convert_image_dtype(
+                train_item["image"], tf.float32)
+            train_network_output = od_model(input_image_tensor, training=True)
             train_loss = compute_loss_fn(
                 train_network_output, train_item["bboxes_preprocessed"],
                 train_item["labels_preprocessed"])
@@ -107,7 +103,10 @@ if __name__ == "__main__":
             for val_index, val_item in enumerate(val_ds):
                 if val_index != 0 and val_index % config["train"]["val_batch"] == 0:
                     break
-                val_network_output = od_model(val_item["image"], training=False)
+
+                val_image_tensor = tf.image.convert_image_dtype(
+                    val_item["image"], tf.float32)
+                val_network_output = od_model(val_image_tensor, training=False)
                 val_loss = compute_loss_fn(
                     val_network_output, val_item["bboxes_preprocessed"],
                     val_item["labels_preprocessed"])
@@ -136,8 +135,11 @@ if __name__ == "__main__":
                 if (config["test"]["test_batch"] is not None and
                         test_index % config["test"]["test_batch"]):
                     break
+
+                test_image_tensor = tf.image.convert_image_dtype(
+                    val_item["image"], tf.float32)
                 test_network_output = od_model(
-                    test_item["image"], training=False)
+                    test_image_tensor, training=False)
 
             bbox_list, label_list = model_builder.predict(
                 test_network_output, mask=test_item["mask"],

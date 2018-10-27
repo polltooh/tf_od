@@ -1,0 +1,49 @@
+dataset:
+    num_classes: 10
+    input_shape_h: 240
+    input_shape_w: 352
+    neg_label_value: -1
+    ignore_label_value: -2
+    train_file_name: "../data/164_one_example.tf"
+    val_file_name: "../data/164_one_example.tf"
+    test_file_name: "../data/164_one_example.tf"
+    image_arg_dict:
+        random_brightness_max_delta: 0.125
+        random_saturation_lower: 0.5
+        random_saturation_upper: 1.5
+        random_hue_max_delta: 0.2
+        random_contrast_lower: 0.5
+        random_contrast_upper: 1.5
+
+train:
+    classificaiton_loss_weight: 1
+    regression_loss_weight: 20
+    pos_iou_threshold: 0.5
+    neg_iou_threshold: 0.3
+    negative_ratio: 3
+    learning_rate: 0.001
+    epoch: 500000
+    batch_size: 2
+    val_iter: 10
+    val_batch: 5
+    shuffle_buffer_size: 1000
+
+test:
+    score_threshold: 0.5
+    test_iter: 10
+    test_batch: 10
+    max_prediction: 100
+
+anchor:
+    scales: [1.0, 2.0]
+    aspect_ratio: [1.0]
+    base_anchor_size: [32, 32]
+
+summary:
+    summary_dir: "../summary"
+    flush_millis: 10000
+
+save:
+    load_model: False
+    save_per_train_iter: 1000
+    model_dir: "../model_dir/od_model" 

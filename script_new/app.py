@@ -72,6 +72,7 @@ if __name__ == "__main__":
     anchor_num_per_output = len(
         config["anchor"]["scales"]) * len(config["anchor"]["aspect_ratio"])
 
+    # num_classes + 1 is to include negative class.
     od_model = model_builder.ObjectDetectionModel(
         config["network"]["base_filter_num"],
         config["network"]["kernel_size"], config["network"]["strides"],
