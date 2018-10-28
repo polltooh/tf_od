@@ -102,10 +102,6 @@ def predict(network_output, mask, score_threshold, neg_label_value, anchors,
 
 
 def build_model(num_classes, anchor_num_per_output):
-    # inception = tf.keras.applications.inception_v3.InceptionV3(
-    #     include_top=False, weights="imagenet")
-    # base_network_model = tf.keras.applications.vgg16.VGG16(
-    #     include_top=False, weights="imagenet")
     base_network_model = tf.keras.applications.resnet50.ResNet50(
         include_top=False, weights="imagenet")
 

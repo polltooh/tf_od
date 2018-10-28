@@ -133,12 +133,12 @@ if __name__ == "__main__":
 
             utils.add_scalar_summary(
                 [train_loss, train_c_loss, train_r_loss],
-                ["train_loss", "train_c_loss", "train_r_loss"],
+                ["loss", "classificaition_loss", "regression_loss"],
                 train_summary_writer)
 
             utils.add_scalar_summary(
                 [val_loss, val_c_loss, val_r_loss],
-                ["val_loss", "val_c_loss", "val_r_loss"],
+                ["loss", "classificaition_loss", "regression_loss"],
                 val_summary_writer)
 
             print("Loss at step {:04d}: train loss: {:.3f}, val loss: {:3f}".format(
@@ -165,6 +165,7 @@ if __name__ == "__main__":
 
                 image_list = []
                 for image, bbox, label in zip(test_item["image"], bbox_list, label_list):
+                    image += 0.5
                     normalized_bboxes = bbox_lib.normalizing_bbox(
                         bbox, config["dataset"]["input_shape_h"],
                         config["dataset"]["input_shape_w"])
