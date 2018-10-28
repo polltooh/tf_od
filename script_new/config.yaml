@@ -20,7 +20,7 @@ train:
     regression_loss_weight: 20
     pos_iou_threshold: 0.5
     neg_iou_threshold: 0.3
-    negative_ratio: 10
+    negative_ratio: 2
     learning_rate: 0.001
     decay_step: 10000
     decay_alpha: 0.000001
