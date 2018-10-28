@@ -24,7 +24,7 @@ train:
     learning_rate: 0.001
     decay_step: 10000
     decay_alpha: 0.000001
-    epoch: 500000
+    epoch: 5000
     batch_size: 20
     val_iter: 50
     val_batch: 5
