@@ -34,8 +34,8 @@ if __name__ == "__main__":
         os.path.join(config["summary"]["summary_dir"], "test"),
         flush_millis=config["summary"]["flush_millis"])
 
-    output_h = 7
-    output_w = 11
+    output_h = 15
+    output_w = 22
     anchor_strides = [config["dataset"]["input_shape_h"] / output_h,
                       config["dataset"]["input_shape_w"] / output_w]
 

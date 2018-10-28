@@ -102,10 +102,19 @@ def predict(network_output, mask, score_threshold, neg_label_value, anchors,
 
 
 def build_model(num_classes, anchor_num_per_output):
-    vgg = tf.keras.applications.vgg19.VGG19(include_top=False, weights='imagenet')
+    # inception = tf.keras.applications.inception_v3.InceptionV3(
+    #     include_top=False, weights="imagenet")
+    # base_network_model = tf.keras.applications.vgg16.VGG16(
+    #     include_top=False, weights="imagenet")
+    base_network_model = tf.keras.applications.resnet50.ResNet50(
+        include_top=False, weights="imagenet")
+    h = base_network_model.get_layer(name='activation_39').output
+    drop_rate = 0.5
+    h = tf.keras.layers.Dropout(drop_rate)(h)
+
     classification_branch = tf.keras.layers.Conv2D(
-            (num_classes + 1) * anchor_num_per_output, (1, 1))(vgg.output)
+        (num_classes + 1) * anchor_num_per_output, (1, 1))(h)
     regression_branch = tf.keras.layers.Conv2D(
-            4 * anchor_num_per_output, (1, 1))(vgg.output)
+        4 * anchor_num_per_output, (1, 1))(h)
     model_outputs = [classification_branch, regression_branch]
-    return tf.keras.models.Model(vgg.input, model_outputs)
+    return tf.keras.models.Model(base_network_model.input, model_outputs)

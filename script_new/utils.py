@@ -6,6 +6,8 @@ import bbox_lib
 
 def add_item_summary(item, network_output, writer, anchors, num_classes):
     with writer.as_default(), tf.contrib.summary.always_record_summaries(), tf.device("/cpu:0"):
+        output_h = 15
+        output_w = 22
         image = item["image"]
         bboxes = item["bboxes"]
         batch_size, image_height, image_width, _ = image.get_shape().as_list()
@@ -29,7 +31,7 @@ def add_item_summary(item, network_output, writer, anchors, num_classes):
 
         labels_preprocessed = item["labels_preprocessed"]
         labels_preprocessed = tf.reshape(
-            labels_preprocessed, [batch_size, 7, 11, -1])
+            labels_preprocessed, [batch_size, output_h, output_w, -1])
         labels_heatmap = tf.reduce_any(tf.logical_and(tf.not_equal(
             labels_preprocessed, -2), tf.not_equal(labels_preprocessed, -1)), -1, keepdims=True)
         labels_heatmap = tf.cast(labels_heatmap, tf.float32)

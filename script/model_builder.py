@@ -131,6 +131,7 @@ class ObjectDetectionModel(tf.keras.Model):
             params_2 = {'kernel_size': [kernel_size, kernel_size],
                         'strides': 1,
                         'padding': 'same'}
+
             conv_layers_1 = []
             conv_layers_2 = []
             bn_layers = []
