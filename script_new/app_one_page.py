@@ -156,7 +156,7 @@ if __name__ == "__main__":
                     break
 
                 test_image_tensor = tf.image.convert_image_dtype(
-                    val_item["image"], tf.float32)
+                    test_item["image"], tf.float32)
                 test_network_output = od_model(
                     test_image_tensor, training=False)
 
