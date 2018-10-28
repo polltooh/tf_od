@@ -121,8 +121,7 @@ def read_data(file_name, anchors, batch_size, pos_iou_threshold, neg_iou_thresho
 
     ds = ds.padded_batch(
         batch_size, padded_shapes=padded_shapes, padding_values=padding_values)
-    ds = ds.prefetch(batch_size * 50)
-
+    ds = ds.prefetch(batch_size * 10)
     ds = ds.make_one_shot_iterator()
 
     return ds
