@@ -49,7 +49,7 @@ def compute_loss(network_output, bboxes, labels, num_classes, c_weight, r_weight
             r_loss = tf.reduce_sum(
                 r_loss * positive_mask[..., tf.newaxis]) / batch_size
 
-        return c_weight * c_loss + r_weight * r_loss
+        return c_weight * c_loss + r_weight * r_loss, c_loss, r_loss
 
 
 def predict(network_output, mask, score_threshold, neg_label_value, anchors,

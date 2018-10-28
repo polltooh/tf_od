@@ -1,6 +1,9 @@
 import tensorflow as tf
 import numpy as np
 import json
+import random
+
+random.seed(0)
 
 tf.enable_eager_execution()
 
@@ -44,6 +47,7 @@ def write_partition_tf(annotation, filename):
 
 if __name__ == "__main__":
     annotation = json.load(open('../file_list/164.json', 'r'))
+    random.shuffle(annotation)
     train_ratio = 0.8
     train_len = int(len(annotation) * train_ratio)
     train_filename = "../data/164_train.tf"
