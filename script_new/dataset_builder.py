@@ -93,12 +93,12 @@ def read_data(file_name, anchors, batch_size, pos_iou_threshold, neg_iou_thresho
               image_arg_dict=None):
 
     ds = tf.data.TFRecordDataset(file_name)
-    ds = ds.repeat(epoch)
     if shuffle_buffer_size is not None:
         ds = ds.shuffle(shuffle_buffer_size)
 
-    ds = ds.map(parser)
+    ds = ds.repeat(epoch)
 
+    ds = ds.map(parser)
     preprocess_data_anchor = functools.partial(
         preprocess_data, anchors=anchors,
         pos_iou_threshold=pos_iou_threshold, neg_iou_threshold=neg_iou_threshold,
@@ -117,6 +117,7 @@ def read_data(file_name, anchors, batch_size, pos_iou_threshold, neg_iou_thresho
 
     ds = ds.padded_batch(
         batch_size, padded_shapes=padded_shapes, padding_values=padding_values)
+    ds = ds.prefetch(batch_size * 10)
 
     ds = ds.make_one_shot_iterator()
 
