@@ -67,6 +67,9 @@ def preprocess_data(record, anchors, pos_iou_threshold, neg_iou_threshold,
     if image_arg_dict is not None:
         record["image"] = image_argumentation(record["image"], image_arg_dict)
 
+    # Whiten the image.
+    record["image"] -= 0.5
+
     bboxes = record["bboxes"]
     labels = record["labels"]
 

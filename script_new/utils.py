@@ -8,14 +8,15 @@ def add_item_summary(item, network_output, writer, anchors, num_classes):
     with writer.as_default(), tf.contrib.summary.always_record_summaries(), tf.device("/cpu:0"):
         output_h = 15
         output_w = 22
-        image = item["image"]
+        # Unwhiten the image.
+        image = item["image"] + 0.5
         bboxes = item["bboxes"]
         batch_size, image_height, image_width, _ = image.get_shape().as_list()
 
         normalized_bboxes = bbox_lib.normalizing_bbox(
             bboxes, image_height, image_width)
         image_with_bboxes = tf.image.draw_bounding_boxes(
-            tf.image.convert_image_dtype(image, tf.float32), normalized_bboxes)
+            image, normalized_bboxes)
         tf.contrib.summary.image('image_with_bboxes', image_with_bboxes)
 
         bboxes_preprocessed = item["bboxes_preprocessed"]
@@ -25,7 +26,7 @@ def add_item_summary(item, network_output, writer, anchors, num_classes):
         bboxes_decoded_norm = bbox_lib.normalizing_bbox(
             bboxes_decoded, image_height, image_width)
         image_with_bboxes_converted = tf.image.draw_bounding_boxes(
-            tf.image.convert_image_dtype(image, tf.float32), bboxes_decoded_norm)
+            image, bboxes_decoded_norm)
         tf.contrib.summary.image(
             'image_with_bboxes_converted', image_with_bboxes_converted)
 
