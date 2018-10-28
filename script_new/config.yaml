@@ -22,9 +22,9 @@ train:
     neg_iou_threshold: 0.3
     negative_ratio: 2
     learning_rate: 0.001
-    decay_step: 3000
-    decay_alpha: 0.00001
-    epoch: 60
+    decay_step: 1500
+    decay_alpha: 0.000001
+    epoch: 30
     batch_size: 20
     val_iter: 50
     val_batch: 5
