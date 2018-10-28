@@ -63,7 +63,8 @@ if __name__ == "__main__":
 
     decayed_lr = tf.train.cosine_decay(
         learning_rate=config["train"]["learning_rate"],
-        global_step=global_step, decay_steps=config['train']['decay_step'])
+        global_step=global_step, decay_steps=config['train']['decay_step'],
+        alpha=config['train']['decay_alpha'])
 
     optimizer = tf.train.AdamOptimizer(decayed_lr)
 
