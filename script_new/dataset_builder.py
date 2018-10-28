@@ -27,6 +27,7 @@ def parser(record):
     image_name = parsed["image_name"]
     image_string = tf.read_file(image_name)
     image_decoded = tf.image.decode_jpeg(image_string)
+    image_decoded = tf.image.convert_image_dtype(image_decoded, tf.float32)
 
     mask_name = parsed["mask_name"]
     mask_string = tf.read_file(mask_name)
@@ -111,7 +112,7 @@ def read_data(file_name, anchors, batch_size, pos_iou_threshold, neg_iou_thresho
                      "bboxes_preprocessed": [None, None], "labels_preprocessed": [None]}
     padding_values = {"bboxes": tf.constant(0, tf.float32),
                       "labels": tf.constant(ignore_label_value, tf.int64),
-                      "image": tf.constant(0, tf.uint8), "mask": tf.constant(False, tf.bool),
+                      "image": tf.constant(0, tf.float32), "mask": tf.constant(False, tf.bool),
                       "bboxes_preprocessed": tf.constant(ignore_label_value, tf.float32),
                       "labels_preprocessed": tf.constant(0, tf.int64)}
 

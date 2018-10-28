@@ -91,9 +91,7 @@ if __name__ == "__main__":
     train_r_loss_sum = 0
     for train_index, train_item in enumerate(train_ds):
         with tf.GradientTape() as tape:
-            input_image_tensor = tf.image.convert_image_dtype(
-                train_item["image"], tf.float32)
-            train_network_output = od_model(input_image_tensor, training=True)
+            train_network_output = od_model(train_item["image"], training=True)
             train_loss, train_c_loss, train_r_loss = compute_loss_fn(
                 train_network_output, train_item["bboxes_preprocessed"],
                 train_item["labels_preprocessed"])
@@ -112,10 +110,7 @@ if __name__ == "__main__":
             for val_index, val_item in enumerate(val_ds):
                 if val_index != 0 and val_index % config["train"]["val_batch"] == 0:
                     break
-
-                val_image_tensor = tf.image.convert_image_dtype(
-                    val_item["image"], tf.float32)
-                val_network_output = od_model(val_image_tensor, training=False)
+                val_network_output = od_model(val_item["image"], training=False)
                 val_loss, val_c_loss, val_r_loss = compute_loss_fn(
                     val_network_output, val_item["bboxes_preprocessed"],
                     val_item["labels_preprocessed"])
@@ -158,10 +153,8 @@ if __name__ == "__main__":
                 if test_index != 0 and test_index % config["test"]["test_batch"]:
                     break
 
-                test_image_tensor = tf.image.convert_image_dtype(
-                    test_item["image"], tf.float32)
                 test_network_output = od_model(
-                    test_image_tensor, training=False)
+                    test_item["image"], training=False)
 
                 bbox_list, label_list = model_builder.predict(
                     test_network_output, mask=test_item["mask"],
@@ -176,8 +169,7 @@ if __name__ == "__main__":
                         bbox, config["dataset"]["input_shape_h"],
                         config["dataset"]["input_shape_w"])
                     image_with_bboxes = tf.image.draw_bounding_boxes(
-                        tf.image.convert_image_dtype(
-                            image[tf.newaxis, ...], tf.float32),
+                        image[tf.newaxis, ...],
                         normalized_bboxes[tf.newaxis, ...])
                     image_list.append(image_with_bboxes)
                 batch_image_tensor = tf.concat(image_list, axis=0)
