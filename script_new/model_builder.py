@@ -108,6 +108,9 @@ def build_model(num_classes, anchor_num_per_output):
     #     include_top=False, weights="imagenet")
     base_network_model = tf.keras.applications.resnet50.ResNet50(
         include_top=False, weights="imagenet")
+
+    _ = [layer.trainable = False for layer in base_network_model.layers]
+
     h = base_network_model.get_layer(name='activation_39').output
     drop_rate = 0.5
     h = tf.keras.layers.Dropout(drop_rate)(h)

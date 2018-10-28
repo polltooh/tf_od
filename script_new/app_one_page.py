@@ -149,6 +149,8 @@ if __name__ == "__main__":
                 train_index, train_loss, val_loss))
 
             train_loss_sum = 0
+            train_c_loss_sum = 0
+            train_r_loss_sum = 0
 
         if train_index != 0 and train_index % config["test"]["test_iter"] == 0:
             for test_index, test_item in enumerate(test_ds):
