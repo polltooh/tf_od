@@ -109,7 +109,7 @@ def read_data(file_name, anchors, batch_size, pos_iou_threshold, neg_iou_thresho
         neg_label_value=neg_label_value, ignore_label_value=ignore_label_value,
         image_arg_dict=image_arg_dict)
 
-    ds = ds.map(preprocess_data_anchor)
+    ds = ds.map(preprocess_data_anchor, num_parallel_calls=4)
     padded_shapes = {"bboxes": [None, 4], "labels": [None], "image": [None, None, 3],
                      "mask": [None, None],
                      "bboxes_preprocessed": [None, None], "labels_preprocessed": [None]}
@@ -121,7 +121,7 @@ def read_data(file_name, anchors, batch_size, pos_iou_threshold, neg_iou_thresho
 
     ds = ds.padded_batch(
         batch_size, padded_shapes=padded_shapes, padding_values=padding_values)
-    ds = ds.prefetch(batch_size * 10)
+    ds = ds.prefetch(batch_size * 50)
 
     ds = ds.make_one_shot_iterator()
 
