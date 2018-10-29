@@ -17,10 +17,10 @@ dataset:
 
 train:
     classificaiton_loss_weight: 1
-    regression_loss_weight: 20
-    pos_iou_threshold: 0.5
+    regression_loss_weight: 10
+    pos_iou_threshold: 0.7
     neg_iou_threshold: 0.3
-    negative_ratio: 2
+    negative_ratio: 3
     learning_rate: 0.001
     decay_step: 5000
     decay_alpha: 0.000001
