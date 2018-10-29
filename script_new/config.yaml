@@ -25,7 +25,7 @@ train:
     decay_step: 3000
     decay_alpha: 0.000001
     epoch: 60
-    batch_size: 20
+    batch_size: 32
     val_iter: 50
     val_batch: 5
     shuffle_buffer_size: 1000
