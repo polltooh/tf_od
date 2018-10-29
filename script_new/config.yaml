@@ -21,8 +21,8 @@ train:
     pos_iou_threshold: 0.5
     neg_iou_threshold: 0.3
     negative_ratio: 2
-    learning_rate: 0.001
-    decay_step: 1500
+    learning_rate: 0.0001
+    decay_step: 1000
     decay_alpha: 0.000001
     epoch: 30
     batch_size: 20
