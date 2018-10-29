@@ -4,9 +4,9 @@ dataset:
     input_shape_w: 352
     neg_label_value: -1
     ignore_label_value: -2
-    train_file_name: "../data/164_train.tf"
-    val_file_name: "../data/164_val.tf"
-    test_file_name: "../data/164_val.tf"
+    train_file_name: "../data/253_train.tf"
+    val_file_name: "../data/253_val.tf"
+    test_file_name: "../data/253_val.tf"
     image_arg_dict:
         random_brightness_max_delta: 0.125
         random_saturation_lower: 0.5

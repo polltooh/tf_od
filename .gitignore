@@ -1,4 +1,6 @@
 *.pyc
+data/*/*.avi
+data/*/*.msk
 summary/*
 tmp/*
 *.xml
