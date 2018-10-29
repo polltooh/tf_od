@@ -32,7 +32,7 @@ train:
 
 test:
     score_threshold: 0.5
-    test_iter: 10
+    test_iter: 50
     test_batch: 10
     max_prediction: 100
 
@@ -48,4 +48,4 @@ summary:
 save:
     load_model: False
     save_per_train_iter: 1000
-    model_dir: "../model_dir/od_model" 
+    model_dir: "../model_dir/od_model"
