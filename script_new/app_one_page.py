@@ -6,6 +6,7 @@ import os
 import json
 import random
 import urllib
+import requests
 import zipfile
 
 import numpy as np
@@ -13,12 +14,15 @@ import tensorflow as tf
 
 tf.enable_eager_execution()
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+EPSILON = 1e-6
 
-
+"""Download data. """
 def download_and_extract_data(data_url, tmp_dir, cam_num):
     full_data_url = os.path.join(data_url, cam_num + ".zip")
     output_path = os.path.join(tmp_dir, cam_num + ".zip")
-    urllib.urlretrieve(full_data_url, output_path)
+    respond = requests.get(full_data_url, allow_redirects=True)
+    with open(output_path, 'wb') as f:
+        f.write(respond.content)
     zip_ref = zipfile.ZipFile(output_path, 'r')
     zip_ref.extractall(tmp_dir)
     zip_ref.close()
@@ -30,6 +34,7 @@ data_url = "https://github.com/polltooh/traffic_video_analysis/raw/master/data/"
 download_and_extract_data(data_url, tmp_dir, cam_num)
 
 
+"""Prepare data. Split and convert to tf records."""
 def check_list(item):
     if not isinstance(item, list):
         item = [item]
@@ -77,9 +82,12 @@ def partition_data(tmp_dir, cam_num, train_ratio):
     write_partition_tf(annotation[:train_len], train_filename)
     write_partition_tf(annotation[train_len:], val_filename)
 
+
 train_ratio = 0.8
 partition_data(tmp_dir, cam_num, train_ratio)
 
+
+"""Preprocessing related functions."""
 def expanded_shape(orig_shape, start_dim, num_dims):
     start_dim = tf.expand_dims(start_dim, 0)  # scalar to rank-1
     before = tf.slice(orig_shape, [0], start_dim)
@@ -174,29 +182,8 @@ anchors = anchor_gen(
 anchor_num_per_output = len(anchor_scales) * len(anchor_aspect_ratio)
 
 
-def build_model(num_classes, anchor_num_per_output):
-    base_network_model = tf.keras.applications.resnet50.ResNet50(
-        include_top=False, weights="imagenet")
-
-    for layer in base_network_model.layers:
-        layer.trainable = False
-
-    h = base_network_model.get_layer(name="activation_39").output
-    drop_rate = 0.5
-    h = tf.keras.layers.Dropout(drop_rate)(h)
-
-    classification_branch = tf.keras.layers.Conv2D(
-        (num_classes + 1) * anchor_num_per_output, (1, 1))(
-            h)
-    regression_branch = tf.keras.layers.Conv2D(4 * anchor_num_per_output, (1, 1))(
-        h)
-    model_outputs = [classification_branch, regression_branch]
-    return tf.keras.models.Model(base_network_model.input, model_outputs)
-
-
 num_classes = 10
 
-od_model = build_model(num_classes, anchor_num_per_output)
 
 # init for the data input.
 batch_size = 32
@@ -205,7 +192,6 @@ neg_iou_threshold = 0.3
 neg_label_value = -1
 ignore_label_value = -2
 
-EPSILON = 1e-6
 
 
 def intersection(bbox1, bbox2, scope=None):
@@ -505,6 +491,7 @@ def read_data(file_name,
     return ds
 
 
+"""Build the dataset."""
 dataset_builder_fn = functools.partial(
     read_data,
     anchors=anchors,
@@ -514,9 +501,6 @@ dataset_builder_fn = functools.partial(
     neg_label_value=neg_label_value,
     ignore_label_value=ignore_label_value)
 
-# train_file_name = "../data/253_train.tf"
-# val_file_name = "../data/253_val.tf"
-# test_file_name = "../data/253_val.tf"
 train_file_name = os.path.join(tmp_dir, cam_num, "train.tf")
 val_file_name = os.path.join(tmp_dir, cam_num, "val.tf")
 test_file_name = os.path.join(tmp_dir, cam_num, "val.tf")
@@ -533,6 +517,31 @@ train_ds = dataset_builder_fn(
 val_ds = dataset_builder_fn(val_file_name)
 test_ds = dataset_builder_fn(test_file_name)
 
+"""Build the model."""
+def build_model(num_classes, anchor_num_per_output):
+    base_network_model = tf.keras.applications.resnet50.ResNet50(
+        include_top=False, weights="imagenet")
+
+    for layer in base_network_model.layers:
+        layer.trainable = False
+
+    h = base_network_model.get_layer(name="activation_39").output
+    drop_rate = 0.5
+    h = tf.keras.layers.Dropout(drop_rate)(h)
+
+    classification_branch = tf.keras.layers.Conv2D(
+        (num_classes + 1) * anchor_num_per_output, (1, 1))(
+            h)
+    regression_branch = tf.keras.layers.Conv2D(4 * anchor_num_per_output, (1, 1))(
+        h)
+    model_outputs = [classification_branch, regression_branch]
+    return tf.keras.models.Model(base_network_model.input, model_outputs)
+
+
+od_model = build_model(num_classes, anchor_num_per_output)
+
+
+"""Learning related params and functions."""
 # init for the learning.
 learning_rate = 0.001
 decay_step = 1000
@@ -546,6 +555,7 @@ decayed_lr = tf.train.cosine_decay(
     alpha=decay_alpha)
 
 optimizer = tf.train.AdamOptimizer(decayed_lr)
+
 
 
 def hard_negative_loss_mining(c_loss, negative_mask, k):
@@ -653,7 +663,6 @@ def predict(network_output, mask, score_threshold, neg_label_value, anchors,
 
     return bbox_list, label_list
 
-
 # init for the loss.
 classificaiton_loss_weight = 1
 regression_loss_weight = 10
@@ -668,14 +677,15 @@ compute_loss_fn = functools.partial(
     ignore_label_value=ignore_label_value,
     negative_ratio=negative_ratio)
 
-train_loss_sum = 0
-val_iter = 1
+"""Training loop."""
+val_iter = 100
 val_batch = 5
-test_iter = 50
+test_iter = 500
 test_batch = 10
 score_threshold = 0.5
 max_prediction = 100
 
+train_loss_sum = 0
 for train_index, train_item in enumerate(train_ds):
     with tf.GradientTape() as tape:
         train_network_output = od_model(train_item["image"], training=True)
