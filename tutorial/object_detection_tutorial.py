@@ -17,14 +17,16 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 tf.enable_eager_execution()
 
 """Build the dataset."""
-# User has to download sample data from www.citycam-cmu.com and put the address here.
+# User has to download sample data from www.citycam-cmu and put the address here.
 tarfile_path = "/home/guanhangwu/tf_od/tutorial/data/164.tar.gz"
 
 if not os.path.exists(tarfile_path):
     print("Please make sure the tarfile you entered is current.")
     exit(1)
 
+# Convert the dataset.
 train_filepath, val_filepath = citycam_dataset_converter.convert(tarfile_path)
+""" TODO(guanhangwu) Discuss the detail of the dataset here."""
 
 output_h = 15
 output_w = 22
