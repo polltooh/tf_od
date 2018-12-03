@@ -6,7 +6,7 @@ import os
 import json
 import random
 import urllib
-import requests
+# import requests
 import zipfile
 
 import numpy as np
@@ -17,21 +17,21 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 EPSILON = 1e-6
 
 """Download data. """
-def download_and_extract_data(data_url, tmp_dir, cam_num):
-    full_data_url = os.path.join(data_url, cam_num + ".zip")
-    output_path = os.path.join(tmp_dir, cam_num + ".zip")
-    respond = requests.get(full_data_url, allow_redirects=True)
-    with open(output_path, 'wb') as f:
-        f.write(respond.content)
-    zip_ref = zipfile.ZipFile(output_path, 'r')
-    zip_ref.extractall(tmp_dir)
-    zip_ref.close()
-
-
-tmp_dir = "/tmp/"
-cam_num = '164'
-data_url = "https://github.com/polltooh/traffic_video_analysis/raw/master/data/"
-download_and_extract_data(data_url, tmp_dir, cam_num)
+# def download_and_extract_data(data_url, tmp_dir, cam_num):
+#     full_data_url = os.path.join(data_url, cam_num + ".zip")
+#     output_path = os.path.join(tmp_dir, cam_num + ".zip")
+#     respond = requests.get(full_data_url, allow_redirects=True)
+#     with open(output_path, 'wb') as f:
+#         f.write(respond.content)
+#     zip_ref = zipfile.ZipFile(output_path, 'r')
+#     zip_ref.extractall(tmp_dir)
+#     zip_ref.close()
+# 
+# 
+# tmp_dir = "/tmp/"
+# cam_num = '164'
+# data_url = "https://github.com/polltooh/traffic_video_analysis/raw/master/data/"
+# download_and_extract_data(data_url, tmp_dir, cam_num)
 
 
 """Prepare data. Split and convert to tf records."""
@@ -83,8 +83,8 @@ def partition_data(tmp_dir, cam_num, train_ratio):
     write_partition_tf(annotation[train_len:], val_filename)
 
 
-train_ratio = 0.8
-partition_data(tmp_dir, cam_num, train_ratio)
+# train_ratio = 0.8
+# partition_data(tmp_dir, cam_num, train_ratio)
 
 
 """Preprocessing related functions."""
@@ -364,14 +364,15 @@ def parser(record):
     parsed = tf.parse_single_example(record, features=keys_to_features)
     parsed = {key: convert_to_dense(value) for key, value in parsed.iteritems()}
 
-    tmp_d = tf.convert_to_tensor(tmp_dir, tf.string)
-    image_name = tf.strings.join([tmp_dir, parsed["image_name"]])
+    # tmp_d = tf.convert_to_tensor(tmp_dir, tf.string)
+    # image_name = tf.strings.join([tmp_dir, parsed["image_name"]])
+    image_name = parsed["image_name"]
     image_string = tf.read_file(image_name)
 
     image_decoded = tf.image.decode_jpeg(image_string)
     image_decoded = tf.image.convert_image_dtype(image_decoded, tf.float32)
 
-    mask_name = tf.strings.join([tmp_dir, parsed["mask_name"]])
+    mask_name = parsed["mask_name"]
     mask_string = tf.read_file(mask_name)
     mask_decoded = tf.image.decode_png(mask_string)
     # Reducing mask to two dimention.
@@ -501,9 +502,9 @@ dataset_builder_fn = functools.partial(
     neg_label_value=neg_label_value,
     ignore_label_value=ignore_label_value)
 
-train_file_name = os.path.join(tmp_dir, cam_num, "train.tf")
-val_file_name = os.path.join(tmp_dir, cam_num, "val.tf")
-test_file_name = os.path.join(tmp_dir, cam_num, "val.tf")
+train_file_name = os.path.join("/home/guanhangwu/tf_od/tutorial/data/164/train.tf")
+val_file_name = os.path.join("/home/guanhangwu/tf_od/tutorial/data/164/val.tf")
+test_file_name = os.path.join("/home/guanhangwu/tf_od/tutorial/data/164/val.tf")
 
 epoch = 30
 shuffle_buffer_size = 1000

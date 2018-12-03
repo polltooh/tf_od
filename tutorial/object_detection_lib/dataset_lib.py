@@ -56,6 +56,9 @@ def preprocess_data(record, anchors, pos_iou_threshold, neg_iou_threshold,
     if image_arg:
         record["image"] = image_argumentation(record["image"])
 
+    # Wihten the dataset.
+    record["image"] -= 0.5
+
     bboxes = record["bboxes"]
     labels = record["labels"]
 

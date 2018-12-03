@@ -13,10 +13,16 @@ from object_detection_lib import dataset_lib
 from object_detection_lib import bbox_lib
 from object_detection_lib import model_lib
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 tf.enable_eager_execution()
 
 """Build the dataset."""
-tarfile_path = "/Users/Geoff/Documents/my_git/data/164.tar.gz"
+# User has to download sample data from www.citycam-cmu.com and put the address here.
+tarfile_path = "/home/guanhangwu/tf_od/tutorial/data/164.tar.gz"
+
+if not os.path.exists(tarfile_path):
+    print("Please make sure the tarfile you entered is current.")
+    exit(1)
 
 train_filepath, val_filepath = citycam_dataset_converter.convert(tarfile_path)
 
@@ -53,8 +59,6 @@ train_ds = dataset_builder_fn(
     image_arg=True)
 
 val_ds = dataset_builder_fn(val_filepath)
-test_ds = dataset_builder_fn(val_filepath)
-
 
 """Build model."""
 def build_model(num_classes, anchor_num_per_output):
@@ -123,6 +127,11 @@ score_threshold = 0.5
 max_prediction = 100
 
 train_loss_sum = 0
+
+model_dir = "models"
+if not os.path.exists(model_dir):
+  os.makedirs(model_dir)
+
 for train_index, train_item in enumerate(train_ds):
     with tf.GradientTape() as tape:
         train_network_output = od_model(train_item["image"], training=True)
@@ -155,30 +164,43 @@ for train_index, train_item in enumerate(train_ds):
 
         train_loss_sum = 0
 
+od_model.save_weights(os.path.join(model_dir, "od_model"))
 
-    if train_index != 0 and train_index % test_iter == 0:
-        for test_index, test_item in enumerate(test_ds):
-            if test_index != 0 and test_index % test_batch:
-                break
 
-            test_network_output = od_model(test_item["image"], training=False)
+"""Test and visualization."""
+od_model.load_weights(os.path.join(model_dir, "od_model"))
+test_ds = dataset_builder_fn(val_filepath)
+save_image_number = 20
 
-            bbox_list, label_list = model_lib.predict(
-                test_network_output,
-                mask=test_item["mask"],
-                score_threshold=score_threshold,
-                neg_label_value=neg_label_value,
-                anchors=anchors,
-                max_prediction=max_prediction,
-                num_classes=num_classes)
+save_image_count = 0
+save_image_dir = "results"
+if not os.path.exists(save_image_dir):
+  os.makedirs(save_image_dir)
 
-            image_list = []
-            for image, bbox, label in zip(test_item["image"], bbox_list, label_list):
-                image += 0.5
-                normalized_bboxes = bbox_lib.normalizing_bbox(
-                    bbox, input_shape_h, input_shape_w)
-                image_with_bboxes = tf.image.draw_bounding_boxes(
-                    image[tf.newaxis, ...], normalized_bboxes[tf.newaxis, ...])
-                image_list.append(image_with_bboxes)
+for test_index, test_item in enumerate(test_ds):
+    if save_image_count == save_image_number:
+      break
 
-    od_model.save_weights(".")
+    test_network_output = od_model(test_item["image"], training=False)
+    bbox_list, label_list = model_lib.predict(
+        test_network_output,
+        mask=test_item["mask"],
+        score_threshold=score_threshold,
+        neg_label_value=neg_label_value,
+        anchors=anchors,
+        max_prediction=max_prediction,
+        num_classes=num_classes)
+
+    for image, bbox, label in zip(test_item["image"], bbox_list, label_list):
+        # Image is whitened in the preprocess.
+        image += 0.5
+        normalized_bboxes = bbox_lib.normalizing_bbox(
+            bbox, input_shape_h, input_shape_w)
+        image_with_bboxes = tf.image.draw_bounding_boxes(
+            image[tf.newaxis, ...], normalized_bboxes[tf.newaxis, ...])
+        image_with_bboxes = tf.image.encode_png(tf.cast(image_with_bboxes[0] * 255, tf.uint8))
+        filepath = tf.constant(os.path.join(save_image_dir, '{}.png'.format(save_image_count)))
+        tf.write_file(filepath, image_with_bboxes)
+        save_image_count += 1
+        if save_image_count == save_image_number:
+          break
