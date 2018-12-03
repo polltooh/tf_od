@@ -7,11 +7,11 @@ import os
 import tensorflow as tf
 import yaml
 
-import citycam_dataset_converter
-import anchor_lib
-import dataset_lib
-import bbox_lib
-import model_lib
+from object_detection_lib import citycam_dataset_converter
+from object_detection_lib import anchor_lib
+from object_detection_lib import dataset_lib
+from object_detection_lib import bbox_lib
+from object_detection_lib import model_lib
 
 tf.enable_eager_execution()
 
