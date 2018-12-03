@@ -4,5 +4,3 @@
 cd script/
 
 python app.py
-
-
