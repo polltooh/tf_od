@@ -55,7 +55,7 @@ def write_partition_tf(annotation, cam_data_dir, filename):
                         "mask_name": encode_bytes(os.path.join(cam_data_dir, annot["mask_name"])),
                         "bboxes": encode_float(np.array(annot["bboxes"]).reshape(-1).tolist()),
                         # -1 is to convert label [1, 10]. to [0, 9]
-                        "labels": encode_int64(annot["labels"] - 1)
+                        "labels": encode_int64([label - 1 for label in annot["labels"]])
                     }))
             writer.write(example.SerializeToString())
 

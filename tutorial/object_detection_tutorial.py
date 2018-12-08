@@ -194,6 +194,8 @@ for test_index, test_item in enumerate(test_ds):
         num_classes=num_classes)
 
     for image, bbox, label in zip(test_item["image"], bbox_list, label_list):
+        # label is converted to [0, 9] for training. +1 to match the original label map [1, 10]
+        label_list = [label + 1 for label in label_list]
         # Image is whitened in the preprocess.
         image += 0.5
         normalized_bboxes = bbox_lib.normalizing_bbox(
