@@ -9,7 +9,7 @@ import matcher
 
 def convert_to_dense(tensor):
     if isinstance(tensor, tf.SparseTensor):
-        tensor = tf.sparse.to_dense(tensor)
+        tensor = tf.sparse_tensor_to_dense(tensor)
     return tensor
 
 
