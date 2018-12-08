@@ -7,6 +7,8 @@ import tensorflow as tf
 import numpy as np
 
 """Download data. """
+
+
 def download_and_extract_data(tarfile_path, cam_num):
     output_dir = os.path.dirname(tarfile_path)
     if os.path.exists(os.path.join(output_dir, cam_num)):
@@ -18,6 +20,8 @@ def download_and_extract_data(tarfile_path, cam_num):
 
 
 """Prepare data. Split and convert to tf records."""
+
+
 def check_list(item):
     if not isinstance(item, list):
         item = [item]
@@ -50,7 +54,8 @@ def write_partition_tf(annotation, cam_data_dir, filename):
                         "image_name": encode_bytes(os.path.join(cam_data_dir, annot["image_name"])),
                         "mask_name": encode_bytes(os.path.join(cam_data_dir, annot["mask_name"])),
                         "bboxes": encode_float(np.array(annot["bboxes"]).reshape(-1).tolist()),
-                        "labels": encode_int64(annot["labels"])
+                        # -1 is to convert label [1, 10]. to [0, 9]
+                        "labels": encode_int64(annot["labels"] - 1)
                     }))
             writer.write(example.SerializeToString())
 
