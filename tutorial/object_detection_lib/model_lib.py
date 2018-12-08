@@ -17,39 +17,36 @@ def compute_loss(network_output, bboxes, labels, num_classes, c_weight, r_weight
                  neg_label_value, ignore_label_value, negative_ratio):
     """Compute loss function."""
 
-    with tf.variable_scope("losses"):
-        batch_size = bboxes.shape[0].value
-        one_hot_labels = tf.one_hot(labels + 1, num_classes + 1)
-        negative_mask = tf.cast(tf.equal(labels, neg_label_value), tf.float32)
-        positive_mask = tf.cast(tf.logical_and(tf.not_equal(labels, ignore_label_value),
-                                               tf.not_equal(labels, neg_label_value)), tf.float32)
+    batch_size = bboxes.shape[0].value
+    one_hot_labels = tf.one_hot(labels + 1, num_classes + 1)
+    negative_mask = tf.cast(tf.equal(labels, neg_label_value), tf.float32)
+    positive_mask = tf.cast(tf.logical_and(tf.not_equal(labels, ignore_label_value),
+                                           tf.not_equal(labels, neg_label_value)), tf.float32)
 
-        with tf.variable_scope("classification_loss"):
-            classification_output = network_output[0]
-            classification_output = tf.reshape(
-                classification_output, [batch_size, -1, num_classes + 1])
+    classification_output = network_output[0]
+    classification_output = tf.reshape(
+        classification_output, [batch_size, -1, num_classes + 1])
 
-            c_loss = tf.losses.softmax_cross_entropy(
-                one_hot_labels, classification_output, reduction=tf.losses.Reduction.NONE)
+    c_loss = tf.losses.softmax_cross_entropy(
+        one_hot_labels, classification_output, reduction=tf.losses.Reduction.NONE)
 
-            num_positive = tf.cast(tf.reduce_sum(positive_mask), tf.int32)
-            pos_c_loss = tf.reduce_sum(c_loss * positive_mask)
-            neg_c_loss = hard_negative_loss_mining(c_loss, negative_mask,
-                                                   num_positive * negative_ratio)
+    num_positive = tf.cast(tf.reduce_sum(positive_mask), tf.int32)
+    pos_c_loss = tf.reduce_sum(c_loss * positive_mask)
+    neg_c_loss = hard_negative_loss_mining(c_loss, negative_mask,
+                                           num_positive * negative_ratio)
 
-            c_loss = (pos_c_loss + neg_c_loss) / batch_size
+    c_loss = (pos_c_loss + neg_c_loss) / batch_size
 
-        with tf.variable_scope("regression_loss"):
-            regression_output = network_output[1]
-            regression_output = tf.reshape(
-                regression_output, [batch_size, -1, 4])
-            r_loss = tf.losses.huber_loss(regression_output, bboxes, delta=1,
-                                          reduction=tf.losses.Reduction.NONE)
+    regression_output = network_output[1]
+    regression_output = tf.reshape(
+        regression_output, [batch_size, -1, 4])
+    r_loss = tf.losses.huber_loss(regression_output, bboxes, delta=1,
+                                  reduction=tf.losses.Reduction.NONE)
 
-            r_loss = tf.reduce_sum(
-                r_loss * positive_mask[..., tf.newaxis]) / batch_size
+    r_loss = tf.reduce_sum(
+        r_loss * positive_mask[..., tf.newaxis]) / batch_size
 
-        return c_weight * c_loss + r_weight * r_loss
+    return c_weight * c_loss + r_weight * r_loss
 
 
 def predict(network_output, mask, score_threshold, neg_label_value, anchors,
